@@ -41,6 +41,8 @@ public class CrimeLab {
         values.put(CrimeTable.Cols.DATE, crime.getDate().getTime());
         values.put(CrimeTable.Cols.SOLVED, crime.isSolved()?1:0);
         values.put(CrimeTable.Cols.SUSPECT, crime.getmSuspect());
+        values.put(CrimeTable.Cols.SEVERE, crime.ismRequiresPolice());
+        values.put(CrimeTable.Cols.TIME, crime.getmTime().getTime().getTime());
         return  values;
     }
     public List<Crime> getmCrimes(){

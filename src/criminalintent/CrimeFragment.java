@@ -8,6 +8,7 @@ import android.content.pm.ResolveInfo;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.provider.ContactsContract;
 import android.provider.MediaStore;
@@ -28,11 +29,11 @@ import android.widget.ImageButton;
 import android.widget.ImageView;
 
 import java.io.File;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
-
-import static android.R.attr.onClick;
 
 /**
  * Created by zifeifeng on 4/25/17.
@@ -42,12 +43,16 @@ public class CrimeFragment extends Fragment {
     private Crime mCrime;
     private EditText mTitleField;
     private Button mDateButton;
+    private Button mTimeButton;
     private CheckBox mSolvedCheckBox;
+    private CheckBox mSevereCheckBox;
     private static final String ARG_CRIME_ID = "crime_id";
     private static final String DIALOG_DATE = "DialogDate";
+    private static final String DIALOG_TIME="DialogTime";
     private static final int REQUEST_DATE = 0;
     private static final int REQUEST_CONTACT = 1;
     private static final int REQUEST_PHOTO=2;
+    private static final int REQUEST_TIME = 4;
     private Button mSuspectButton;
     private Button mReportButton;
     private ImageButton mCameraButton;
@@ -116,8 +121,24 @@ public class CrimeFragment extends Fragment {
                 // This one too
             }
         });
+
+        if(Build.VERSION.SDK_INT < 23)
+            mTimeButton.setEnabled(false);
+        mTimeButton =(Button) v.findViewById(R.id.crime_time);
+        updateTime();
+        mTimeButton.setOnClickListener(new View.OnClickListener(){
+            @Override
+            public void onClick(View view) {
+                FragmentManager fm = getFragmentManager();
+                TimePickerFragment dialog = TimePickerFragment.newInstance(mCrime.getmTime());
+                dialog.setTargetFragment(CrimeFragment.this, REQUEST_TIME );
+                dialog.show(fm, DIALOG_TIME);
+            }
+        });
+
         mDateButton = (Button)v.findViewById(R.id.crime_date);
         updateDate();
+
         mDateButton.setOnClickListener(new View.OnClickListener(){
             @Override
             public void onClick(View view) {
@@ -125,6 +146,15 @@ public class CrimeFragment extends Fragment {
                 DatePickerFragment dialog = DatePickerFragment.newInstance(mCrime.getDate());
                 dialog.setTargetFragment(CrimeFragment.this, REQUEST_DATE);
                 dialog.show(fm, DIALOG_DATE);
+            }
+        });
+        mSevereCheckBox = (CheckBox) v.findViewById(R.id.crime_severe);
+        mSevereCheckBox.setChecked(mCrime.ismRequiresPolice());
+        mSevereCheckBox.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener(){
+            @Override
+            public void onCheckedChanged(CompoundButton compoundButton, boolean isChecked) {
+                mCrime.setmRequiresPolice(isChecked);
+                updateCrime();
             }
         });
 
@@ -193,6 +223,12 @@ public class CrimeFragment extends Fragment {
             updateDate();
             updateCrime();
         }
+        else if(requestCode == REQUEST_TIME&&resultCode == Activity.RESULT_OK){
+            Calendar time = (Calendar) data.getSerializableExtra(TimePickerFragment.EXTRA_TIME);
+            mCrime.setmTime(time);
+            updateTime();
+            updateCrime();
+        }
         else if(requestCode == REQUEST_CONTACT && data!=null){
             Uri contactUri= data.getData();
             String[] queryField = new String[]{ContactsContract.Contacts.DISPLAY_NAME};
@@ -226,7 +262,16 @@ public class CrimeFragment extends Fragment {
     }
 
     private void updateDate() {
-        mDateButton.setText(mCrime.getDate().toString());
+        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("EEE, MMM d yyyy");
+        Date date = mCrime.getDate();
+        mDateButton.setText(simpleDateFormat.format(date));
+    }
+
+    private void updateTime(){
+        SimpleDateFormat simpleDateFormat =new SimpleDateFormat("hh:mm aaa");
+        Calendar time = mCrime.getmTime();
+
+        mTimeButton.setText(simpleDateFormat.format(time.getTime()));
     }
 
     private String getCrimeReport(){
