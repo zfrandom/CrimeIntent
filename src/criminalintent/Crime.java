@@ -1,5 +1,6 @@
 package com.example.android.criminalintent;
 
+import java.util.Calendar;
 import java.util.Date;
 import java.util.UUID;
 
@@ -13,9 +14,12 @@ public class Crime {
     private Date mDate;
     private boolean mSolved;
     private String mSuspect;
+    private boolean mRequiresPolice;
+    private Calendar mTime;
     public Crime(){
         mId = UUID.randomUUID();
         mDate = new Date();
+        mTime = Calendar.getInstance();
     }
 
     public Crime(UUID id){
@@ -56,5 +60,21 @@ public class Crime {
 
     public void setmSuspect(String mSuspect) {
         this.mSuspect = mSuspect;
+    }
+
+    public boolean ismRequiresPolice() {
+        return mRequiresPolice;
+    }
+
+    public void setmRequiresPolice(boolean mRequiresPolice) {
+        this.mRequiresPolice = mRequiresPolice;
+    }
+
+    public Calendar getmTime() {
+        return mTime;
+    }
+
+    public void setmTime(Calendar mTime) {
+        this.mTime = mTime;
     }
 }

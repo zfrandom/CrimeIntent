@@ -1,7 +1,6 @@
 package com.example.android.criminalintent;
 
 import android.content.Context;
-import android.content.Intent;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
@@ -16,10 +15,9 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
-import android.widget.Toast;
 
-import org.w3c.dom.Text;
-
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
 
 /**
@@ -32,6 +30,7 @@ public class CrimeListFragment extends Fragment {
     private boolean subtitleVisible = false;
     private static String SAVED_SUBTITLE_VIIBLE = "subtitle";
     private Callbacks mCallback;
+    private TextView mEmptyView;
 
     public interface Callbacks{
         void onCrimeSelected(Crime crime);
@@ -55,11 +54,25 @@ public class CrimeListFragment extends Fragment {
         setHasOptionsMenu(true);
     }
 
+    @Nullable
+    @Override
+    public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+        View view = inflater.inflate(R.layout.fragment_crime_list, container, false);
+        mEmptyView = (TextView) view.findViewById(R.id.empty_view);
+        mCrimeRecyclerView = (RecyclerView) view.findViewById(R.id.crime_recycler_view);
+        mCrimeRecyclerView.setLayoutManager(new LinearLayoutManager(getActivity()));
+        if(savedInstanceState!=null)
+            subtitleVisible = savedInstanceState.getBoolean(SAVED_SUBTITLE_VIIBLE);
+        showAppropiateView();
+        return view;
+
+    }
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         switch(item.getItemId()){
             case R.id.new_crime:
                 Crime crime = new Crime();
+
                 CrimeLab lab = CrimeLab.get(getActivity());
                 lab.addCrime(crime);
                 updateUI();
@@ -83,18 +96,7 @@ public class CrimeListFragment extends Fragment {
         activity.getSupportActionBar().setSubtitle(subtitle);
     }
     // private int changePosition = 0;
-    @Nullable
-    @Override
-    public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        View view = inflater.inflate(R.layout.fragment_crime_list, container, false);
-        mCrimeRecyclerView = (RecyclerView) view.findViewById(R.id.crime_recycler_view);
-        mCrimeRecyclerView.setLayoutManager(new LinearLayoutManager(getActivity()));
-        if(savedInstanceState!=null)
-            subtitleVisible = savedInstanceState.getBoolean(SAVED_SUBTITLE_VIIBLE);
 
-        return view;
-
-    }
 
     @Override
     public void onSaveInstanceState(Bundle outState) {
@@ -107,7 +109,14 @@ public class CrimeListFragment extends Fragment {
         private TextView mDateTextView;
         private ImageView mSolvedImageView;
         private Crime mCrime;
+        public CrimeHolder(LayoutInflater inflater, ViewGroup parent, int viewType){
+            super(inflater.inflate(R.layout.list_item_severe_crime, parent, false));
+            mTitleTextView = (TextView) itemView.findViewById(R.id.crime_title);
+            mDateTextView = (TextView) itemView.findViewById(R.id.crime_date);
+            itemView.setOnClickListener(this);
+            mSolvedImageView = (ImageView) itemView.findViewById(R.id.crime_solved);
 
+        }
         public CrimeHolder(LayoutInflater inflater, ViewGroup parent) {
             super(inflater.inflate(R.layout.list_item_crime, parent, false));
             mTitleTextView = (TextView) itemView.findViewById(R.id.crime_title);
@@ -120,10 +129,19 @@ public class CrimeListFragment extends Fragment {
         public void bind(Crime crime) {
             mCrime = crime;
             mTitleTextView.setText(mCrime.getTitle());
-            mDateTextView.setText(mCrime.getDate().toString());
+            SimpleDateFormat simpleDateFormat = new SimpleDateFormat("EEE, MMM d yyyy");
+            Date date = mCrime.getDate();
+            mDateTextView.setText(simpleDateFormat.format(date).toString());
             mSolvedImageView.setVisibility(crime.isSolved() ? View.VISIBLE : View.GONE);
         }
-
+        public void bindSevere(Crime crime){
+            mCrime = crime;
+            mTitleTextView.setText(mCrime.getTitle());
+            SimpleDateFormat simpleDateFormat = new SimpleDateFormat("EEE, MMM d yyyy");
+            Date date = mCrime.getDate();
+            mDateTextView.setText(simpleDateFormat.format(date).toString());
+            mSolvedImageView.setVisibility(crime.isSolved() ? View.VISIBLE : View.GONE);
+        }
         @Override
         public void onClick(View view) {
             mCallback.onCrimeSelected(mCrime);
@@ -158,10 +176,13 @@ public class CrimeListFragment extends Fragment {
             mAdapter.notifyDataSetChanged();
         }
         updateSubtitle();
+        showAppropiateView();
     }
 
-    public class CrimeAdapter extends RecyclerView.Adapter<CrimeHolder> {
+    public class CrimeAdapter extends RecyclerView.Adapter<CrimeHolder > {
         private List<Crime> mCrimes;
+        protected static final int NOT_SEVERE_ROW = 0;
+        protected static final int SEVERE_ROW = 1;
 
         public CrimeAdapter(List<Crime> crimes) {
             mCrimes = crimes;
@@ -170,22 +191,51 @@ public class CrimeListFragment extends Fragment {
         @Override
         public CrimeHolder onCreateViewHolder(ViewGroup parent, int viewType) {
             LayoutInflater layoutInflater = LayoutInflater.from(getActivity());
-            return new CrimeHolder(layoutInflater, parent);
+            if(viewType == NOT_SEVERE_ROW) {
+                CrimeHolder crimeHolder = new CrimeHolder(layoutInflater, parent);
+                return crimeHolder;
+            }
+            else{
+                CrimeHolder crimeHolder = new CrimeHolder(layoutInflater, parent, viewType);
+                return crimeHolder;
+            }
         }
     public void setCrimes(List<Crime> crimes){
         mCrimes = crimes;
     }
+
         @Override
         public void onBindViewHolder(CrimeHolder holder, int position) {
             Crime crime = mCrimes.get(position);
-            holder.bind(crime);
+            if(crime.ismRequiresPolice())
+                holder.bindSevere(crime);
+            else
+                holder.bind(crime);
         }
+
 
         @Override
         public int getItemCount() {
             return mCrimes.size();
         }
 
+        @Override
+        public int getItemViewType(int position) {
+            return mCrimes.get(position).ismRequiresPolice()? SEVERE_ROW: NOT_SEVERE_ROW;
+        }
+    }
+    private void showAppropiateView(){
+        if(emptyDb()){
+            mEmptyView.setVisibility(View.VISIBLE);
+            mCrimeRecyclerView.setVisibility(View.INVISIBLE);
+        }
+        else{
+            mEmptyView.setVisibility(View.GONE);
+            mCrimeRecyclerView.setVisibility(View.VISIBLE);
+        }
+    }
+    private boolean emptyDb(){
+        return CrimeLab.get(getActivity()).isEmpty();
     }
 
 

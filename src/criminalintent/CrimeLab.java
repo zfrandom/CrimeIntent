@@ -41,6 +41,8 @@ public class CrimeLab {
         values.put(CrimeTable.Cols.DATE, crime.getDate().getTime());
         values.put(CrimeTable.Cols.SOLVED, crime.isSolved()?1:0);
         values.put(CrimeTable.Cols.SUSPECT, crime.getmSuspect());
+        values.put(CrimeTable.Cols.SEVERE, crime.ismRequiresPolice());
+        values.put(CrimeTable.Cols.TIME, crime.getmTime().getTime().getTime());
         return  values;
     }
     public List<Crime> getmCrimes(){
@@ -84,6 +86,11 @@ public class CrimeLab {
         return new CrimeCursorWrapper(cursor);
     }
 
+    public void deleteCrime(Crime c){
+        //ContentValues values = getContentValues(c);
+        String[] args = {c.getId().toString()};
+        mDatabase.delete(CrimeTable.NAME, CrimeTable.Cols.UUID +" =?", args);
+    }
     public void addCrime(Crime c){
 
         ContentValues values = getContentValues(c);
@@ -93,5 +100,12 @@ public class CrimeLab {
     public File getPhotoFile(Crime crime) {
         File filesDir = mContext.getFilesDir();
         return new File(filesDir, crime.getPhotoFilename());
+    }
+
+    public boolean isEmpty(){
+        Cursor cursor = mDatabase.rawQuery("SELECT  * FROM " + CrimeTable.NAME, null);
+        int cnt = cursor.getCount();
+        cursor.close();
+        return cnt==0;
     }
 }
